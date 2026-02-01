@@ -5,40 +5,35 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 
-const url =
-  "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY";
-
-const headers = {
-  "User-Agent": "Mozilla/5.0",
-  "Accept": "application/json",
-  "Referer": "https://www.nseindia.com/"
-};
-
-let data = null;
-
-async function loadData() {
-  try {
-    const res = await axios.get(url, { headers });
-    data = res.data;
-    console.log("NIFTY data updated");
-  } catch (e) {
-    console.log("NSE blocked, retrying...");
-  }
-}
-
-setInterval(loadData, 30000);
-loadData();
-
 app.get("/", (req, res) => {
-  res.send("NSE Backend Running");
+  res.send("NSE option chain API running");
 });
 
-app.get("/api/option-chain", (req, res) => {
-  if (!data) return res.json({ error: "Loading" });
-  res.json(data);
+app.get("/api/option-chain", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://www.nseindia.com/api/option-chain-indices?symbol=NIFTY",
+      {
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          "Accept": "application/json",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Referer": "https://www.nseindia.com/"
+        },
+        timeout: 5000
+      }
+    );
+
+    res.json(response.data);
+  } catch (err) {
+    res.status(500).json({
+      error: "Fetch failed",
+      message: err.message
+    });
+  }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () =>
-  console.log("Server running on", PORT)
-);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Server running on port", PORT);
+});
